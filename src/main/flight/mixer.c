@@ -55,6 +55,8 @@
 
 #include "sensors/battery.h"
 
+#include "programming/global_variables.h"
+
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
@@ -586,8 +588,20 @@ void FAST_CODE mixTable()
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         const motorStatus_e currentMotorStatus = getMotorStatus();
+
+        // HACK! Grab GV8 to use for panning motors.
+        const int32_t motorPanning = gvGet(7);
+
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            float pan = 1.0f;
+            if (i<2) {
+                if (i==1) {
+                    pan = constrainf((motorPanning-1000)/500.0f,0,1.0f);
+                } else {
+                    pan = constrainf((2000-motorPanning)/500.0f,0,1.0f);
+                }
+            }
+            motor[i] = rpyMix[i] + constrain(pan * mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
