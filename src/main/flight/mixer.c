@@ -601,12 +601,14 @@ void FAST_CODE mixTable()
                     pan = constrainf((2000-motorPanning)/500.0f,0,1.0f);
                 }
             }
-            motor[i] = rpyMix[i] + constrain(pan * mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
             } else {
+                motor[i] = (motor[i]-throttleRangeMin)*pan+throttleRangeMin;
                 motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
+                if (pan < 0.1f) motor[i] = motorValueWhenStopped; 
             }
 
             // Motor stop handling
